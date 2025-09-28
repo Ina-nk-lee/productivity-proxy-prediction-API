@@ -1,7 +1,4 @@
-<<<<<<< HEAD
-# productivity-proxy-prediction-API
-=======
-# Project Specification Draft
+# Project 1 Spec
 
 **Title:** Productivity Proxy Prediction API for Students
 
@@ -32,20 +29,7 @@ cost.
 
 ---
 
-## 3. Features
-
-- **Available at prediction time**:
-
-  - `sleep_hours` (T-8h): reported upon waking
-  - `stress_level` (T-1h): self-report before prediction
-  - `previous_day_productivity` (T-24h): historical label from yesterday
-
-- **Excluded to avoid leakage**:
-  - `today_task_completion` (T+12h): only known after prediction
-  - `post-report survey data`: collected after prediction time
-
-All features included are available **before T0** (the time of prediction), ensuring no label leakage.
-(No Leakage)
+## 3. Features (No Leakage)
 
 - **Core inputs**:
   - `sleep_hours` (previous night)
@@ -57,18 +41,13 @@ All features included are available **before T0** (the time of prediction), ensu
 
 ---
 
-## 4. Baseline
-
-- **Baseline**: Heuristic rule – if `stress_level` > 3 and `sleep_hours` < 6, then productivity ≤ 5.
-- **Model**: Logistic regression using `sleep_hours`, `stress_level`, `previous_day_productivity`, and time-of-day.
-- **Hypothesis**: The model is expected to outperform the baseline by improving precision by ≥ 10% at similar recall, especially in low-sleep/high-stress regimes.
-  → Model Plan
+## 4. Baseline → Model Plan
 
 - **Baseline**: Rule-based model.
-  - sleep \< 6h → lower score
-  - caffeine 0-200mg → slightly higher score; \> 400mg → lower
+  - sleep < 6h → lower score
+  - caffeine 0-200mg → slightly higher score; > 400mg → lower
     score
-  - screen_time \> 6h → lower score
+  - screen_time > 6h → lower score
 - **Model**: Lightweight regression (Linear Regression).
 - **Deployment**: Model exported to ONNX for small size and fast
   inference in serverless environments.
@@ -80,8 +59,9 @@ All features included are available **before T0** (the time of prediction), ensu
 - **Metrics**: RMSE / MAE (continuous), Brier score (probabilities).
 - **SLA**:
   - p95 latency ≤ 300ms
-  - cold start \< 1s
+  - cold start < 1s
   - availability ≥ 99%
+- **Cost envelope**: service remains within serverless **free-tier**; target ≈ **$0/month** under normal student load; **monitored with synthetic probes every 1 minute @ ~1k req/min**; on viral spikes (**e.g., 50k req/h**) automatically **degrade to baseline (rules-only)** to cap compute and avoid overage; **stateless** by design (raw=0d; aggregates ≤30d).
 - **Cost constraints (student reality)**:
   - Free-tier limits on AWS Lambda or Vercel (millions of free
     invocations/month).
@@ -121,14 +101,14 @@ All features included are available **before T0** (the time of prediction), ensu
 
 ## 7. Privacy, Ethics, Reciprocity (PIA excerpt)
 
-- **Data**: Lifestyle features only; no PII.
-- **Guardrails**:
-  - Reject extreme values (caffeine \> 1000mg).
-  - No storage of individual data (stateless API).
-  - Telemetry only in aggregate with jitter/noise.
-- **Reciprocity**: Users receive actionable recommendations (not just
-  a score). Example: "Cutting screen time improves predicted
-  productivity."
+(📎 **See full PIA: https://github.com/Ina-nk-lee/productivity-proxy-prediction-API/blob/main/PIA.pdf**)
+
+- **Data Collected**: sleep_hours, caffeine_mg, screen_time_hours (lifestyle only, no PII)
+- **Purpose**: predict proxy productivity score (0–10)
+- **Retention**: none for raw inputs (0 days); aggregates kept ≤ 30 days
+- **Access**: developer-only; no third-party sharing
+- **Guardrails**: input validation (reject outliers), jitter/noise for aggregates, opt-in telemetry only
+- **Disclaimer**: This API predicts a _proxy productivity score_, not medical or clinical outcomes.
 
 ---
 
@@ -172,20 +152,37 @@ All features included are available **before T0** (the time of prediction), ensu
     proxies.
   - Compare baseline RMSE vs model RMSE.
 - **SLA test**:
-  - Simulate free-tier limits; measure latency under \~1k req/min.
+  - **Synthetic probes every 1 minute @ ~1k req/min** to measure p95 latency & cold start.
+  - Simulate free-tier limits; measure latency under ~1k req/min.
   - Test fallback baseline mode for stability.
 
 ---
 
 ## 11. Evolution & Evidence
 
-<<<<<<< HEAD
-- **Git evidence**: Spec refinements, PIA updates, architecture
-  diagram changes.
-- **Socratic log**: Include examples of AI collaboration, corrections,
-  and prompt evolution.
-- **Assumption audit**: Document and test assumptions like "more sleep
-  → higher productivity proxy score."
+- Reframed anxiety → productivity proxy.
+- Added non-linear caffeine effect.
+- Chose serverless + fallback over containers.
+- Differentiated from CalmCast (inputs & horizon).
+
+**Git Evidence:**
+
+```
+commit eb070297f21d44ac3d88a8c445f18b84486235ae
+Date:   Sun Sep 28 11:12:01 2025 -0700
+
+    add diagram and evaluation plan
+
+commit 3238461d994ec2d35a3fea427202d484d9b55f57
+Date:   Sun Sep 28 12:06:59 2025 -0600
+
+    add API sketch to README
+
+commit 1e0df43f81a119d47d663d983fe5788e922c79b4
+Date:   Sat Sep 27 16:09:08 2025 -0600
+
+    Initial commit
+```
 
 ---
 
@@ -199,59 +196,6 @@ free-tier constraints, with fallback strategies to handle viral load.
 The design covers rubric requirements in problem framing, specification
 clarity, privacy/ethics, baseline evaluation, architecture, risks, and
 evolution.
-
-# API Sketch – Productivity Proxy Prediction API
-
-## Endpoints Table
-
-| Method | Endpoint      | Description                            | Auth         |
-| ------ | ------------- | -------------------------------------- | ------------ |
-| POST   | `/v1/predict` | Predict daily productivity proxy score | Bearer Token |
-| GET    | `/v1/health`  | Health check (latency + status)        | None         |
-
----
-
-## Example Request (POST /v1/predict)
-
-```json
-{
-  "sleep_hours": 6.2,
-  "caffeine_mg": 120,
-  "screen_time_hours": 5.5
-}
-```
-
-## Example Response (200 OK)
-
-```json
-{
-  "proxy_productivity_score": 6.8,
-  "uncertainty": 0.2,
-  "risk_factors": ["late_bedtime", "high_screen_time"],
-  "suggestion": "Reducing screen time by 1h could increase score by ~0.5"
-}
-```
-
----
-
-## Example Error Response (400 Bad Request)
-
-```json
-{
-  "error": "Invalid input: caffeine_mg must be between 0 and 1000"
-}
-```
-
----
-
-## Authentication & Rate Limits
-
-- **Auth**: All prediction requests require a **Bearer token** in the header
-  ```
-  Authorization: Bearer <token>
-  ```
-- **Rate limits**: Free-tier students limited to **60 requests/min per token**
-- **Unauthenticated requests**: Only `/v1/health` is open
 
 # Architecture Diagram & Minimal Evaluation Plan
 
@@ -268,6 +212,7 @@ flowchart LR
   subgraph Guardrails
     G[Retention: raw=0d, aggregates ≤30d]
     H[Minimal telemetry + jitter if shared]
+    I[SLA target: p95 latency ≤300ms; cold start <1s]
   end
 
   F -.-> Guardrails
@@ -277,7 +222,7 @@ flowchart LR
 
 **Baseline**
 
-- Rule-based: sleep <6h → score↓, caffeine >400mg → score↓, screen_time >6h → score↓
+- Rule-based: sleep < 6h → score↓, caffeine > 400mg → score↓, screen_time > 6h → score↓
 
 **Model**
 
@@ -292,26 +237,17 @@ flowchart LR
 
 - Train/test split on open dataset (proxy labels: stress, attention span, productivity)
 - Compare RMSE of baseline vs model
+- **SLA measurement**: **synthetic probes every 1 minute @ ~1k req/min**
 - Load test: simulate 1k req/min (fits free-tier), test viral spike (50k req/h) with fallback
-<<<<<<< HEAD
->>>>>>> eb07029 (add diagram and evaluation plan)
-=======
 
-# PIA Excerpt & Telemetry Decision Matrix
-=======
+**Cost envelope**
+
+- **Within free-tier** (~**$0/month** under normal student load); measured alongside SLA probes; if projected overage, automatically **degrade to baseline** and reduce telemetry frequency; stateless inputs (raw=0d; aggregates ≤30d).
+
 ### Insight Memo, Assumption Audit, Socratic Log, Git Evidence
->>>>>>> 506fb7d (update baseline model information)
 
-## PIA Excerpt
+#### Insight Memo (3 Key Insights)
 
-<<<<<<< HEAD
-- **Data Collected**: sleep_hours, caffeine_mg, screen_time_hours (lifestyle only, no PII)
-- **Purpose**: predict proxy productivity score (0–10)
-- **Retention**: none for raw inputs (0 days); aggregates kept ≤30 days
-- **Access**: developer-only; no third-party sharing
-- **Guardrails**: input validation (reject outliers), jitter/noise for aggregates, opt-in telemetry only
-- **Disclaimer**: This API predicts a _proxy productivity score_, not medical or clinical outcomes.
-=======
 1. **Proxy ≠ Productivity**: Productivity cannot be measured directly. Using stress, attention span, and self-reported scores as proxies makes the target tractable but requires honesty about limitations.
 2. **Free-tier Constraints Shape Architecture**: Designing for AWS Lambda/Vercel with fallback rules ensures the system remains viable for students without paid infrastructure. Cost limitations fundamentally influenced design choices.
 3. **Baseline vs Model Trade-off**: Rule-based baselines are explainable and resilient at scale, while lightweight ML models add nuance. Maintaining both supports reliability under viral load.
@@ -348,7 +284,31 @@ flowchart LR
 #### Git Evidence
 
 ```
-commit 121bfd6180a0f34f7bc796ed5d6db17d75e104ef (HEAD -> main)
+commit 5b796fedd57a3dfd929c791aa9a2a2cd6aaa11ac (HEAD -> main, origin/main, origin/HEAD)
+Author: Ina Lee <inalee1208@gmail.com>
+Date:   Sun Sep 28 16:27:07 2025 -0700
+
+    add PIA as a separate file
+
+commit 506fb7d67c515ff03bd1841800b0bd626a3231f3
+Author: Ina Lee <inalee1208@gmail.com>
+Date:   Sun Sep 28 17:02:06 2025 -0600
+
+    update baseline model information
+
+commit 89f80641f1e5a2867beef1b586d06adc2cfb0fbb
+Author: Ina Lee <inalee1208@gmail.com>
+Date:   Sun Sep 28 16:36:06 2025 -0600
+
+    shorten spec
+
+commit f75644382458e803683f189554821ba2ff0c63bc
+Author: Ina Lee <inalee1208@gmail.com>
+Date:   Sun Sep 28 12:53:47 2025 -0600
+
+    format README
+
+commit 121bfd6180a0f34f7bc796ed5d6db17d75e104ef
 Author: Ina Lee <inalee1208@gmail.com>
 Date:   Sun Sep 28 11:13:32 2025 -0700
 
@@ -366,7 +326,7 @@ Date:   Sun Sep 28 12:06:59 2025 -0600
 
     add API sketch to README
 
-commit 1951413c5e81148907d31d613b8579fc6275aa2d (origin/main, origin/HEAD)
+commit 1951413c5e81148907d31d613b8579fc6275aa2d
 Author: Ina Lee <inalee1208@gmail.com>
 Date:   Sat Sep 27 16:27:11 2025 -0600
 
@@ -378,130 +338,3 @@ Date:   Sat Sep 27 16:09:08 2025 -0600
 
     Initial commit
 ```
-
----
-
-## ✦ Conclusion
-
-This API provides a realistic, low-cost solution for predicting daily
-productivity proxies based on lifestyle inputs. It acknowledges the
-limits of using stress and attention span as proxies, while still
-offering practical value to students. The architecture is feasible under
-free-tier constraints, with fallback strategies to handle viral load.
-The design covers rubric requirements in problem framing, specification
-clarity, privacy/ethics, baseline evaluation, architecture, risks, and
-evolution.
-
-# API Sketch – Productivity Proxy Prediction API
-
-## Endpoints Table
-
-| Method | Endpoint      | Description                            | Auth         |
-| ------ | ------------- | -------------------------------------- | ------------ |
-| POST   | `/v1/predict` | Predict daily productivity proxy score | Bearer Token |
-| GET    | `/v1/health`  | Health check (latency + status)        | None         |
-
----
-
-## Example Request (POST /v1/predict)
-
-```json
-{
-  "sleep_hours": 6.2,
-  "caffeine_mg": 120,
-  "screen_time_hours": 5.5
-}
-```
-
-## Example Response (200 OK)
-
-```json
-{
-  "proxy_productivity_score": 6.8,
-  "uncertainty": 0.2,
-  "risk_factors": ["late_bedtime", "high_screen_time"],
-  "suggestion": "Reducing screen time by 1h could increase score by ~0.5"
-}
-```
-
----
-
-## Example Error Response (400 Bad Request)
-
-```json
-{
-  "error": "Invalid input: caffeine_mg must be between 0 and 1000"
-}
-```
-
----
-
-## Authentication & Rate Limits
-
-- **Auth**: All prediction requests require a **Bearer token** in the header
-  ```
-  Authorization: Bearer <token>
-  ```
-- **Rate limits**: Free-tier students limited to **60 requests/min per token**
-- **Unauthenticated requests**: Only `/v1/health` is open
-
-# Architecture Diagram & Minimal Evaluation Plan & Telemetry Decision Matrix
-
-## Architecture Diagram (Mermaid)
-
-```mermaid
-flowchart LR
-  A[Client] -->|/predict| B[API Gateway]
-  B --> C[Compute: Serverless Function]
-  C --> D[(Model: ONNX)]
-  C --> E[(Fallback: Rule-based Baseline)]
-  C --> F[Observability]
-
-  subgraph Guardrails
-    G[Retention: raw=0d, aggregates ≤30d]
-    H[Minimal telemetry + jitter if shared]
-  end
-
-  F -.-> Guardrails
-```
-
-## Minimal Evaluation Plan
-
-**Baseline**
-
-- Rule-based: sleep < 6h → score↓, caffeine > 400mg → score↓, screen_time > 6h → score↓
-
-**Model**
-
-- Lightweight regression (Linear/XGBoost), exported to ONNX
-
-**Metrics**
-
-- RMSE / MAE (continuous proxy score)
-- SLA metric: p95 latency ≤ 300ms, cold start < 1s
-
-**Evaluation**
-
-- Train/test split on open dataset (proxy labels: stress, attention span, productivity)
-- Compare RMSE of baseline vs model
-- Load test: simulate 1k req/min (fits free-tier), test viral spike (50k req/h) with fallback
->>>>>>> 506fb7d (update baseline model information)
-
-## Telemetry Decision Matrix
-
-| Data Type              | Collected? | Granularity  | Retention | Guardrails / Notes              |
-| ---------------------- | ---------- | ------------ | --------- | ------------------------------- |
-| Input payloads         | ❌         | N/A          | 0 days    | Stateless; no storage           |
-| Prediction outputs     | ❌         | N/A          | 0 days    | Returned to client only         |
-<<<<<<< HEAD
-| Aggregate metrics      | ✔️         | Daily totals | ≤30 days  | Jitter/noise added; opt-in only |
-| Latency / SLA metrics  | ✔️         | p95, avg     | ≤30 days  | Used for SLA monitoring         |
-| Error counts           | ✔️         | Aggregate    | ≤30 days  | No raw input stored             |
-| User identifiers (PII) | ❌         | N/A          | N/A       | Never collected                 |
->>>>>>> 121bfd6 (add PIA excerpt and Telemetry Decision matrix)
-=======
-| Aggregate metrics      | ✔️         | Daily totals | ≤ 30 days | Jitter/noise added; opt-in only |
-| Latency / SLA metrics  | ✔️         | p95, avg     | ≤3 0 days | Used for SLA monitoring         |
-| Error counts           | ✔️         | Aggregate    | ≤ 30 days | No raw input stored             |
-| User identifiers (PII) | ❌         | N/A          | N/A       | Never collected                 |
->>>>>>> 506fb7d (update baseline model information)
