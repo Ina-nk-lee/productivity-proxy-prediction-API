@@ -274,4 +274,29 @@ flowchart LR
 - Train/test split on open dataset (proxy labels: stress, attention span, productivity)
 - Compare RMSE of baseline vs model
 - Load test: simulate 1k req/min (fits free-tier), test viral spike (50k req/h) with fallback
+<<<<<<< HEAD
 >>>>>>> eb07029 (add diagram and evaluation plan)
+=======
+
+# PIA Excerpt & Telemetry Decision Matrix
+
+## PIA Excerpt
+
+- **Data Collected**: sleep_hours, caffeine_mg, screen_time_hours (lifestyle only, no PII)
+- **Purpose**: predict proxy productivity score (0–10)
+- **Retention**: none for raw inputs (0 days); aggregates kept ≤30 days
+- **Access**: developer-only; no third-party sharing
+- **Guardrails**: input validation (reject outliers), jitter/noise for aggregates, opt-in telemetry only
+- **Disclaimer**: This API predicts a _proxy productivity score_, not medical or clinical outcomes.
+
+## Telemetry Decision Matrix
+
+| Data Type              | Collected? | Granularity  | Retention | Guardrails / Notes              |
+| ---------------------- | ---------- | ------------ | --------- | ------------------------------- |
+| Input payloads         | ❌         | N/A          | 0 days    | Stateless; no storage           |
+| Prediction outputs     | ❌         | N/A          | 0 days    | Returned to client only         |
+| Aggregate metrics      | ✔️         | Daily totals | ≤30 days  | Jitter/noise added; opt-in only |
+| Latency / SLA metrics  | ✔️         | p95, avg     | ≤30 days  | Used for SLA monitoring         |
+| Error counts           | ✔️         | Aggregate    | ≤30 days  | No raw input stored             |
+| User identifiers (PII) | ❌         | N/A          | N/A       | Never collected                 |
+>>>>>>> 121bfd6 (add PIA excerpt and Telemetry Decision matrix)
